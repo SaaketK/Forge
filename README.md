@@ -1,2 +1,2 @@
 # Forge
-Its like the phoenix
+Its like the phoenix.
