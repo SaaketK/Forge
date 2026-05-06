@@ -1,0 +1,22 @@
+# Core orchestration
+langgraph>=0.2.0
+langchain-core>=0.3.0
+
+# UI
+streamlit>=1.36
+
+# LLM providers (install whichever you actually use)
+anthropic>=0.40.0
+openai>=1.40.0
+
+# Parsing
+tree-sitter>=0.23.0
+tree-sitter-c>=0.23.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.7
+
+# Dev
+pytest>=8.0
+ruff>=0.6
