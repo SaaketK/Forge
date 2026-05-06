@@ -15,6 +15,9 @@ from pathlib import Path
 
 from forge.config import DOCKER_IMAGE, DOCKER_TIMEOUT_SECONDS
 
+import uuid
+
+container_id: str | None = None
 
 @dataclass
 class CompileResult:
@@ -22,6 +25,41 @@ class CompileResult:
     stdout: str
     stderr: str
     returncode: int
+
+def start_container(source: Path) -> str:
+    global container_id
+    if container_id is not None:
+        check = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Running}}", container_id],
+            capture_output=True,
+            text=True,
+        )
+        if check.returncode != 0 or check.stdout.strip() != "true":
+            print(f"Container {container_id} is not running. Starting a new one.")
+            container_id = None
+
+    if container_id is None:
+        container_id = str(uuid.uuid4().hex[:8])
+        name = f"forge-sandbox-{container_id}"
+        process = subprocess.run([
+            "docker", "run",
+            "--rm",
+            "--detach",
+            "--name", name,
+            "--network=none",
+            "-v", f"{source}:/work:ro",
+            "-w", "/work",
+            "--user", "sandbox",
+            DOCKER_IMAGE,
+            "sleep", "infinity"
+        ],
+            capture_output=True,
+            text=True,
+        )
+    if process.returncode != 0:
+        raise RuntimeError(f"Failed to start sandbox container: {process.stderr.strip()}")
+    container_id = process.stdout.strip()
+    return container_id
 
 
 def compile_in_sandbox(source_dir: Path, command: str) -> CompileResult:
