@@ -57,6 +57,7 @@ def _parse_cppcheck_xml(xml: str) -> list[dict]:
         found.append({
             "tool": "cppcheck",
             "severity": severity,
+            "id": error.get("id", ""),
             "message": error.get("msg", ""),
             "verbose": error.get("verbose", ""),
             "file": Path(location.get("file", "")).name if location is not None else "",
