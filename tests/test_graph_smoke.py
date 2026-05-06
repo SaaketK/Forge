@@ -1,4 +1,4 @@
-"""Smoke test: the stub graph should run end-to-end without raising."""
+# Smoke test: the stub graph should run end-to-end without raising.
 
 from pathlib import Path
 
