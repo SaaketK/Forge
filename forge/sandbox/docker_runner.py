@@ -16,6 +16,7 @@ from pathlib import Path
 from forge.config import DOCKER_IMAGE, DOCKER_TIMEOUT_SECONDS
 
 import uuid
+import atexit
 
 container_id: str | None = None
 
@@ -59,6 +60,7 @@ def start_container(source: Path) -> str:
     if process.returncode != 0:
         raise RuntimeError(f"Failed to start sandbox container: {process.stderr.strip()}")
     container_id = process.stdout.strip()
+    atexit.register(stop_container)
     return container_id
 
 def stop_container():
