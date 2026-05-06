@@ -61,6 +61,11 @@ def start_container(source: Path) -> str:
     container_id = process.stdout.strip()
     return container_id
 
+def stop_container():
+    global container_id
+    if container_id is not None:
+        subprocess.run(["docker", "stop", container_id], capture_output=True, text=True)
+        container_id = None
 
 def compile_in_sandbox(source_dir: Path, command: str) -> CompileResult:
     """Run `command` inside the sandbox container against the given source dir.
