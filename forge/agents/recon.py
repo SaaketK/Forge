@@ -17,7 +17,7 @@ from forge.state import ForgeState, log_step
 import tree_sitter_c as tsc
 import tree_sitter as ts
 
-_C_LANGUAGE = ts.Language(tsc.language())
+_C_LANGUAGE = ts.Language(tsc.language(), "c")
 
 def _parse(content: bytes) -> ts.Tree:
     parser = ts.Parser(_C_LANGUAGE)

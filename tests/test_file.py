@@ -5,7 +5,7 @@ from forge.state import initial_state
 
 def test_file():
     # 1. Path to C file
-    proc_c_path = Path("samples/easy/kalloc.c")
+    proc_c_path = Path("/Users/saaketk/VSCProjects/Forge/samples/easy/test_file.py")
     
     if not proc_c_path.exists():
         pytest.skip("proc.c not found in samples/xv6/")
