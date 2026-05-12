@@ -17,7 +17,10 @@ from forge.state import ForgeState, log_step
 import tree_sitter_c as tsc
 import tree_sitter as ts
 
-_C_LANGUAGE = ts.Language(tsc.language(), "c")
+try:
+    _C_LANGUAGE = ts.Language(tsc.language(), "c")
+except TypeError:
+    _C_LANGUAGE = ts.Language(tsc.language())
 
 def _parse(content: bytes) -> ts.Tree:
     parser = ts.Parser(_C_LANGUAGE)
@@ -61,11 +64,12 @@ def _parse_file(filename: str, content: bytes) -> tuple[list, list, list, list]:
     tree = _parse(content)
     functions, includes, globals_, structs = [], [], [], []
 
-    for node in tree.root_node.children:
+    def _process_node(node):
+        """Process a single top-level node. Called recursively for preproc guards."""
         if node.type == "function_definition":
             name = _find_function_name(node)
             if not name:
-                continue
+                return
             body = next((c for c in node.children if c.type == "compound_statement"), None)
             functions.append({
                 "name": name,
@@ -87,8 +91,8 @@ def _parse_file(filename: str, content: bytes) -> tuple[list, list, list, list]:
                     structs.append({
                         "name": child.text.decode(),
                         "file": filename,
-                        "line_start": child.start_point[0] + 1,
-                        "line_end": child.end_point[0] + 1,
+                        "line_start": node.start_point[0] + 1,
+                        "line_end": node.end_point[0] + 1,
                     })
         elif node.type == "type_definition":
             for child in node.children:
@@ -96,13 +100,12 @@ def _parse_file(filename: str, content: bytes) -> tuple[list, list, list, list]:
                     structs.append({
                         "name": child.text.decode(),
                         "file": filename,
-                        "line_start": child.start_point[0] + 1,
-                        "line_end": child.end_point[0] + 1,
+                        "line_start": node.start_point[0] + 1,
+                        "line_end": node.end_point[0] + 1,
                     })
         elif node.type == "declaration":
             name = _find_function_name(node)
             if name:
-                # its a function prototype or global var
                 sig = node.text.decode().rstrip(";").strip()
                 functions.append({
                     "name": name,
@@ -116,10 +119,16 @@ def _parse_file(filename: str, content: bytes) -> tuple[list, list, list, list]:
                     "declaration_only": True,
                 })
             else:
-                # global var
                 for child in node.children:
                     if child.type == "identifier":
                         globals_.append(child.text.decode())
+        elif node.type in ("preproc_ifdef", "preproc_if", "preproc_ifndef"):
+            # Recurse into #ifdef / #ifndef / #if blocks
+            for child in node.children:
+                _process_node(child)
+
+    for node in tree.root_node.children:
+        _process_node(node)
 
     return functions, includes, globals_, structs
 

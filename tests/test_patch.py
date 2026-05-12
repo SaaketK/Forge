@@ -1,6 +1,18 @@
+"""Tests for the Patch Agent."""
+
+import os
+import pytest
+
 from forge.state import initial_state
 from forge.agents.patch import patch_agent
 
+needs_llm = pytest.mark.skipif(
+    not os.getenv("ANTHROPIC_API_KEY"),
+    reason="ANTHROPIC_API_KEY not set",
+)
+
+
+@needs_llm
 def test_patch_agent():
     state = initial_state(
         source_files={
