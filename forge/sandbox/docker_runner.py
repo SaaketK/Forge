@@ -13,6 +13,19 @@ import atexit
 
 container_id: str | None = None
 
+
+def docker_available() -> bool:
+    """Check if Docker is installed and the daemon is running."""
+    if not shutil.which("docker"):
+        return False
+    try:
+        result = subprocess.run(
+            ["docker", "info"], capture_output=True, text=True, timeout=10,
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
 @dataclass
 class CompileResult:
     success: bool

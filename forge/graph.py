@@ -79,7 +79,13 @@ def build_graph():
 
     g.set_entry_point("recon")
     g.add_edge("recon", "analysis")
-    g.add_edge("analysis", "patch")
+
+    # Skip patch/validation entirely if analysis found nothing.
+    g.add_conditional_edges(
+        "analysis",
+        lambda s: "patch" if (s.get("findings") or []) else "done",
+        {"patch": "patch", "done": END},
+    )
     g.add_edge("patch", "validation")
 
     g.add_conditional_edges(
