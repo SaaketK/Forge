@@ -1,125 +1,136 @@
 # Forge
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=SaaketK/Forge&branch=main&mainModule=app.py)
+**Forge** is an agentic pipeline that audits C code, generates patches, and validates them — automatically. Upload a `.c` file, and Forge runs real static analysis tools, uses an LLM to interpret the findings, writes fixes as unified diffs, and compiles and tests each fix in a sandboxed Docker environment. If a patch fails, it retries with the compiler errors fed back to the LLM.
 
-> Agentic Build & Debug Pipeline for Systems Code.
-
-Forge is a multi-agent system that takes a C project, runs real static
-analysis and compilation tools against it, uses an LLM to interpret and
-prioritize findings, generates patches, and validates those patches in a
-sandboxed environment — iterating until the code is clean or the system
-escalates to a human.
-
-The full design lives in
-[`docs/Forge_Project_Outline.md`](docs/Forge_Project_Outline.md).
+The key idea: **the LLM interprets and generates — the actual bug-finding is done by battle-tested tools** (`cppcheck`, `clang-tidy`, gcc sanitizers). No hallucinated bugs.
 
 ---
 
-## Repo layout
+## How it works
 
 ```
-forge/
-  state.py        # ForgeState — the shared contract every agent codes against
-  config.py       # env-driven config (LLM keys, retry caps, Docker image)
-  graph.py        # LangGraph state machine wiring the four agents together
-  llm.py          # provider-agnostic chat() wrapper
-  agents/         # one stub per agent (Member 2 fills recon+analysis,
-                  #                       Member 3 fills patch+validation)
-  sandbox/        # Docker-based compile/run helper (Member 3)
-app.py            # Streamlit UI (Member 1)
-docker/Dockerfile # sandbox image with gcc, clang-tidy, cppcheck
-samples/easy/     # week-4 smoke-test inputs (e.g. leak.c)
-tests/            # pytest smoke tests
-docs/             # design outline
+Upload .c / .h files
+        │
+        ▼
+┌──────────────┐     ┌────────────────┐     ┌─────────────┐     ┌──────────────────┐
+│  Recon Agent │────▶│ Analysis Agent │────▶│ Patch Agent │────▶│ Validation Agent │
+│              │     │                │     │             │     │                  │
+│ Parses code  │     │ Runs cppcheck  │     │ LLM writes  │     │ Applies diff,    │
+│ into AST,    │     │ + clang-tidy,  │     │ a minimal   │     │ compiles with    │
+│ extracts     │     │ then LLM dedup │     │ unified     │     │ sanitizers in    │
+│ call graph   │     │ + prioritizes  │     │ diff patch  │     │ Docker sandbox   │
+└──────────────┘     └────────────────┘     └─────────────┘     └────────┬─────────┘
+                                                    ▲                    │
+                                                    │         PASS ──────┼──▶ Report
+                                                    │                    │
+                                                    └────── FAIL ────────┘
+                                                      (compiler errors feedback
+                                                       loop, retries up to 3×)
 ```
 
-## Who owns what
+### The four agents
 
-| Area | Member | Files to start with |
-|------|--------|--------------------|
-| Orchestrator + UI | 1 | `forge/graph.py`, `app.py` |
-| Recon + Analysis | 2 | `forge/agents/recon.py`, `forge/agents/analysis.py` |
-| Patch + Validation | 3 | `forge/agents/patch.py`, `forge/agents/validation.py`, `forge/sandbox/docker_runner.py`, `docker/Dockerfile` |
+**Recon** — Parses your C files using `tree-sitter` into an AST. Extracts function signatures, the call graph, struct definitions, globals, and entry points. Computes cyclomatic complexity. No LLM involved in the C code breakdown.
 
-The shared contract is `ForgeState` in [`forge/state.py`](forge/state.py).
-Do not change its shape without telling the team.
+**Analysis** — Shells out to `cppcheck` (XML output) and `clang-tidy`, then sends the raw findings plus the recon map to the LLM. The LLM deduplicates, classifies each finding as CRITICAL / WARNING / INFO, and ranks by severity * reachability (bugs in functions called from `main` rank higher).
+
+**Patch** — For each finding, sends the relevant source code and bug description to the LLM and asks for a minimal unified diff. If a previous attempt failed, the compiler errors are included so the LLM doesn't repeat the same mistake.
+
+**Validation** — Copies the source into a Docker container (no network, non-root user), applies the patch with `patch -p1`, compiles with `gcc -fsanitize=address,undefined`, and re-runs `cppcheck` to confirm the original issue is gone. Returns PASS or FAIL with structured feedback.
+
+## Hosted vs. local
+
+A hosted version is available at [forge.streamlit.app](https://forge.streamlit.app) — no setup required, runs recon + analysis + patch. The validation sandbox requires Docker and is only available when running locally.
 
 ---
 
 ## Quickstart
 
-### 1. Prerequisites
+### Prerequisites
 
 - Python 3.11+
-- Docker (for the validation sandbox; not needed to run the stub pipeline)
-- A working `cppcheck` and `clang-tidy` (only needed by Member 2 once the
-  Analysis Agent is wired up)
+- Docker (for the validation sandbox)
+- `cppcheck` and `clang-tidy` installed locally
+- An Anthropic or OpenAI API key
 
-### 2. Install
+### Install
 
 ```bash
-git clone <this repo>
+git clone https://github.com/SaaketK/Forge.git
 cd Forge
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env       # then fill in your API key
+cp .env.example .env       # fill in your API key
 ```
 
-### 3. Run the stub pipeline end-to-end
-
-```bash
-pytest                     # confirms the graph wires up correctly
-streamlit run app.py       # opens the UI in your browser
-```
-
-Upload `samples/easy/leak.c` and click **Run Forge**. With the current stubs
-the agents just log "running" — once you implement them, real findings and
-patches will flow through.
-
-### 4. Build the sandbox image (when Member 3 is ready to validate)
+### Build the sandbox image
 
 ```bash
 docker build -t forge-sandbox:latest -f docker/Dockerfile .
 ```
 
----
-
-## Development conventions
-
-- Each agent is a function `(state: ForgeState) -> ForgeState`.
-- Agents append to `state["agent_trace"]` via `forge.state.log_step` so the
-  UI gets real-time updates for free.
-- Routing decisions live in [`forge/graph.py`](forge/graph.py), never in the
-  agents themselves.
-- Lazy-import LLM SDKs and heavy deps inside agent functions so unrelated
-  tests stay fast.
-- Run `pytest` before pushing.
-
-## Deploying to Streamlit Community Cloud
-
-1. Push this repo to GitHub (public or private).
-2. Go to [share.streamlit.io](https://share.streamlit.io) and click **Create app**.
-3. Point it at `app.py` on the `main` branch.
-4. Under **Advanced settings → Secrets**, add:
-
-```toml
-ANTHROPIC_API_KEY = "sk-ant-..."
-FORGE_LLM_PROVIDER = "anthropic"
-FORGE_LLM_MODEL = "claude-sonnet-4-6"
-```
-
-`cppcheck` and `clang-tidy` are installed automatically via `packages.txt`.
-Docker is not available on Streamlit Cloud, so the validation sandbox step is
-skipped — patches are accepted based on static analysis alone. For full
-sandbox validation, run locally with Docker.
-
----
-
-## Useful commands
+### Run
 
 ```bash
-pytest -v                  # smoke tests
-ruff check .               # lint
-streamlit run app.py       # UI
+streamlit run app.py
+```
+
+Upload one of the sample files from `samples/easy/` (e.g. `leak.c`) and click **Run Forge**.
+
+---
+
+## Configuration
+
+All options are set via environment variables (copy `.env.example` to `.env`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `FORGE_LLM_PROVIDER` | `anthropic` | `anthropic` or `openai` |
+| `FORGE_LLM_MODEL` | `claude-sonnet-4-6` | Model name for the configured provider |
+| `ANTHROPIC_API_KEY` | — | Required if using Anthropic |
+| `OPENAI_API_KEY` | — | Required if using OpenAI |
+| `FORGE_MAX_RETRIES` | `3` | Max patch attempts per finding before escalating |
+| `FORGE_DOCKER_IMAGE` | `forge-sandbox:latest` | Sandbox image name |
+| `FORGE_DOCKER_TIMEOUT` | `60` | Seconds before sandbox timeout |
+
+---
+
+## Tech stack
+
+| Component | Technology |
+|---|---|
+| Orchestration | [LangGraph](https://github.com/langchain-ai/langgraph) state machine |
+| LLM | Anthropic or OpenAI (provider-agnostic) |
+| Code parsing | `tree-sitter` + `tree-sitter-c` |
+| Static analysis | `cppcheck`, `clang-tidy` |
+| Compilation / sanitizers | `gcc -fsanitize=address,undefined` |
+| Sandbox | Docker (network-disabled, non-root) |
+| Frontend UI | Streamlit |
+
+---
+
+## Project structure
+
+```
+forge/
+  agents/         # recon, analysis, patch, validation agents
+  sandbox/        # Docker container lifecycle + compile helpers
+  state.py        # ForgeState schema shared across all agents
+  config.py       # env-driven configuration
+  graph.py        # LangGraph state machine and routing logic
+  llm.py          # provider-agnostic chat() wrapper
+app.py            # Streamlit UI
+docker/Dockerfile # sandbox image (gcc, clang, cppcheck)
+samples/easy/     # sample C files with intentional bugs
+tests/            # pytest suite
+```
+
+---
+
+## Running tests
+
+```bash
+pytest -v          # full suite (LLM + Docker tests skipped if keys/Docker not present)
+ruff check .       # lint
 ```
