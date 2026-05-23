@@ -23,7 +23,7 @@ except Exception:
 from forge.graph import build_graph
 from forge.state import initial_state
 
-st.set_page_config(page_title="Forge", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="Forge", layout="wide")
 st.title("FORGE — Agentic C Code Auditor")
 
 # ── Sidebar: inputs ──────────────────────────────────────────────────────────
@@ -68,10 +68,7 @@ if run:
                         node in ("advance", "bump_attempt")
                         and entry.get("agent") == "supervisor"
                     ):
-                        icon = "✅" if "found" in entry.get("message", "") or "completed" in entry.get("message", "") or "PASS" in entry.get("message", "") else "⏳"
-                        if "FAIL" in entry.get("message", "") or "failed" in entry.get("message", ""):
-                            icon = "❌"
-                        st.write(f"{icon} **{entry['agent']}**: {entry['message']}")
+                        st.write(f"**{entry['agent']}**: {entry['message']}")
         status.update(label="Forge run complete", state="complete")
 
     st.divider()
@@ -96,16 +93,15 @@ if run:
         st.subheader("Findings")
         for i, finding in enumerate(findings):
             severity = finding.get("severity", "INFO")
-            sev_color = {"CRITICAL": "🔴", "WARNING": "🟡", "INFO": "🔵"}.get(severity, "⚪")
             patched = any(
                 p.get("finding_id") == finding.get("id") for p in accepted
             )
-            patch_badge = "✅ Patched" if patched else ""
-            escalated_badge = "⚠️ Escalated" if finding in escalated else ""
-            status_badge = patch_badge or escalated_badge or "⏳ Pending"
+            patch_badge = "Patched" if patched else ""
+            escalated_badge = "Escalated" if finding in escalated else ""
+            status_badge = patch_badge or escalated_badge or "Pending"
 
             with st.expander(
-                f"{sev_color} **{finding.get('id', f'F{i:03d}')}** — "
+                f"[{severity}] **{finding.get('id', f'F{i:03d}')}** — "
                 f"{finding.get('category', 'unknown')} in `{finding.get('function', '?')}()` "
                 f"({finding.get('file', '?')}:{','.join(str(l) for l in finding.get('lines', []))}) "
                 f"[{status_badge}]"
@@ -137,8 +133,8 @@ if run:
                     st.markdown("---")
                     st.markdown("**Validation:**")
                     vcol1, vcol2, vcol3 = st.columns(3)
-                    vcol1.metric("Compile", "✅" if last_result.get("compile_success") else "❌")
-                    vcol2.metric("Sanitizer", "✅" if last_result.get("sanitizer_clean") else "❌")
+                    vcol1.metric("Compile", "OK" if last_result.get("compile_success") else "FAIL")
+                    vcol2.metric("Sanitizer", "OK" if last_result.get("sanitizer_clean") else "FAIL")
                     vcol3.metric("Verdict", last_result.get("verdict", "?"))
                     if last_result.get("stderr"):
                         with st.popover("Compiler output"):
@@ -158,7 +154,7 @@ if run:
 
     with dcol1:
         st.download_button(
-            "📄 Download full report (JSON)",
+            "Download full report (JSON)",
             data=json.dumps(state, indent=2, default=str),
             file_name="forge_report.json",
             mime="application/json",
@@ -174,7 +170,7 @@ if run:
 
     with dcol2:
         st.download_button(
-            "📦 Download patched source",
+            "Download patched source",
             data=json.dumps(patched_files, indent=2),
             file_name="forge_patched_source.json",
             mime="application/json",
