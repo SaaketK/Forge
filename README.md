@@ -1,6 +1,6 @@
 # Forge
 
-**Forge** is an agentic pipeline that audits C code, generates patches, and validates them automatically. Upload a `.c` or `.h` file, and Forge runs real static analysis tools, uses an LLM to interpret the findings, writes fixes as unified diffs, and compiles and tests each fix in a sandboxed Docker environment. If a patch fails, it retries with the compiler errors fed back to the LLM. The core principle is that the LLM interprets and generates specific error messages while the actual bug-finding is done by standard **C** static analysis tools** (`cppcheck`, `clang-tidy`, gcc sanitizers). 
+**Forge** is an agentic pipeline that audits C code, generates patches, and validates them automatically. Upload a `.c` or `.h` file, and Forge runs real static analysis tools, uses an LLM to interpret the findings, writes fixes as unified diffs, and compiles and tests each fix in a sandboxed Docker environment. If a patch fails, it retries with the compiler errors fed back to the LLM. The core principle is that the LLM interprets and generates specific error messages while the actual bug-finding is done by standard **C** static analysis tools (`cppcheck`, `clang-tidy`, gcc sanitizers). 
 
 ---
 
