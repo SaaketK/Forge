@@ -12,7 +12,8 @@ This is a stub. Real implementation should:
 """
 
 from __future__ import annotations
-import anthropic
+
+from forge.llm import chat
 from forge.state import ForgeState, log_step
 
 PATCH_SYSTEM_PROMPT = """You are an expert C/C++ security engineer.    
@@ -80,18 +81,11 @@ def patch_agent(state: ForgeState) -> ForgeState:
             last = validation_results[-1]
             prev_errors = "\n".join(filter(None, [last.get("stderr", ""), last.get("sanitizer_output", ""),]))
 
-    client = anthropic.Anthropic()
     prompt = _build_prompt(finding, source_files, prev_errors)
 
     try:
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2048,
-            system=PATCH_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": prompt}],
-        )
-
-        diff = _extract_diff(response.content[0].text)
+        raw = chat(prompt, system=PATCH_SYSTEM_PROMPT, max_tokens=2048)
+        diff = _extract_diff(raw)
 
         state.setdefault("patches", []).append({
             "finding_id": finding.get("id", f"F{idx:03d}"),

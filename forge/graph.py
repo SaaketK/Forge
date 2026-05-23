@@ -50,7 +50,7 @@ def _advance(state: ForgeState) -> ForgeState:
     idx = state.get("current_finding_index", 0)
     last_result = (state.get("validation_results") or [])[-1] if state.get("validation_results") else None
 
-    if last_result and last_result.get("verdict") == "PASS":
+    if last_result and last_result.get("verdict") == "PASS" and state.get("patches"):
         state.setdefault("accepted_patches", []).append(state["patches"][-1])
     elif idx < len(findings):
         state.setdefault("escalated_findings", []).append(findings[idx])

@@ -7,8 +7,18 @@ Run with:
 from __future__ import annotations
 
 import json
+import os
 
 import streamlit as st
+
+# Streamlit Community Cloud stores secrets in st.secrets, not os.environ.
+# Bridge them in before forge/config.py loads so ANTHROPIC_API_KEY etc. are visible.
+try:
+    for _k, _v in st.secrets.items():
+        if _k not in os.environ:
+            os.environ[_k] = str(_v)
+except Exception:
+    pass  # running locally — .env handles secrets
 
 from forge.graph import build_graph
 from forge.state import initial_state

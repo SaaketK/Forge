@@ -156,7 +156,10 @@ Codebase Structural Map:
    if cleaned.startswith("```"):
       cleaned = cleaned.split("\n", 1)[1]
       cleaned = cleaned.rsplit("```", 1)[0]
-   parsed = json.loads(cleaned)
+   try:
+      parsed = json.loads(cleaned)
+   except json.JSONDecodeError as exc:
+      raise RuntimeError(f"LLM returned non-JSON response: {exc}\n---\n{cleaned}") from exc
    return parsed.get("findings", [])
 
 def analysis_agent(state: ForgeState) -> ForgeState:

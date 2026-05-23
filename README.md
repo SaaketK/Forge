@@ -1,5 +1,7 @@
 # Forge
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=SaaketK/Forge&branch=main&mainModule=app.py)
+
 > Agentic Build & Debug Pipeline for Systems Code.
 
 Forge is a multi-agent system that takes a C project, runs real static
@@ -93,6 +95,26 @@ docker build -t forge-sandbox:latest -f docker/Dockerfile .
 - Lazy-import LLM SDKs and heavy deps inside agent functions so unrelated
   tests stay fast.
 - Run `pytest` before pushing.
+
+## Deploying to Streamlit Community Cloud
+
+1. Push this repo to GitHub (public or private).
+2. Go to [share.streamlit.io](https://share.streamlit.io) and click **Create app**.
+3. Point it at `app.py` on the `main` branch.
+4. Under **Advanced settings → Secrets**, add:
+
+```toml
+ANTHROPIC_API_KEY = "sk-ant-..."
+FORGE_LLM_PROVIDER = "anthropic"
+FORGE_LLM_MODEL = "claude-sonnet-4-6"
+```
+
+`cppcheck` and `clang-tidy` are installed automatically via `packages.txt`.
+Docker is not available on Streamlit Cloud, so the validation sandbox step is
+skipped — patches are accepted based on static analysis alone. For full
+sandbox validation, run locally with Docker.
+
+---
 
 ## Useful commands
 
