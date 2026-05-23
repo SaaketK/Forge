@@ -34,13 +34,13 @@ Upload .c / .h files
 
 **Analysis** — Shells out to `cppcheck` (XML output) and `clang-tidy`, then sends the raw findings plus the recon map to the LLM. The LLM deduplicates, classifies each finding as CRITICAL / WARNING / INFO, and ranks by severity * reachability (bugs in functions called from `main` rank higher).
 
-**Patch** — For each finding, sends the relevant source code and bug description to the LLM and asks for a minimal unified diff. If a previous attempt failed, the compiler errors are included so the LLM doesn't repeat the same mistake.
+**Patch** — For each finding, it sends the relevant source code and bug description to the LLM and asks for a minimal fix. If a previous attempt failed, the compiler errors are included so the LLM doesn't repeat the same mistake.
 
 **Validation** — Copies the source into a Docker container (no network, non-root user), applies the patch with `patch -p1`, compiles with `gcc -fsanitize=address,undefined`, and re-runs `cppcheck` to confirm the original issue is gone. Returns PASS or FAIL with structured feedback.
 
-## Hosted vs. local
+## Hosted vs. Local
 
-A hosted version is available at [forge.streamlit.app](https://forge.streamlit.app) — no setup required, runs recon + analysis + patch. The validation sandbox requires Docker and is only available when running locally.
+A hosted version is available at [forge-agenticai.streamlit.app](https://forge.streamlit.app), no setup required, runs recon + analysis + patch. The validation sandbox requires Docker and is only available when running locally.
 
 ---
 
