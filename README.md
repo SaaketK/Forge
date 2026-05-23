@@ -1,8 +1,6 @@
 # Forge
 
-**Forge** is an agentic pipeline that audits C code, generates patches, and validates them — automatically. Upload a `.c` file, and Forge runs real static analysis tools, uses an LLM to interpret the findings, writes fixes as unified diffs, and compiles and tests each fix in a sandboxed Docker environment. If a patch fails, it retries with the compiler errors fed back to the LLM.
-
-The key idea: **the LLM interprets and generates — the actual bug-finding is done by battle-tested tools** (`cppcheck`, `clang-tidy`, gcc sanitizers). No hallucinated bugs.
+**Forge** is an agentic pipeline that audits C code, generates patches, and validates them automatically. Upload a `.c` or `.h` file, and Forge runs real static analysis tools, uses an LLM to interpret the findings, writes fixes as unified diffs, and compiles and tests each fix in a sandboxed Docker environment. If a patch fails, it retries with the compiler errors fed back to the LLM. The core principle is that the LLM interprets and generates specific error messages while the actual bug-finding is done by standard **C** static analysis tools** (`cppcheck`, `clang-tidy`, gcc sanitizers). 
 
 ---
 
@@ -40,11 +38,11 @@ Upload .c / .h files
 
 ## Hosted vs. Local
 
-A hosted version is available at [forge-agenticai.streamlit.app](https://forge.streamlit.app), no setup required, runs recon + analysis + patch. The validation sandbox requires Docker and is only available when running locally.
+A hosted version is available at [forge-agenticai.streamlit.app](https://forge-agenticai.streamlit.app), no setup required, runs recon + analysis + patch. The validation sandbox requires Docker and is only available when running locally.
 
 ---
 
-## Quickstart
+## Quickstart Locally
 
 ### Prerequisites
 
