@@ -15,7 +15,7 @@ container_id: str | None = None
 
 
 def docker_available() -> bool:
-    """Check if Docker is installed and the daemon is running."""
+    # check install
     if not shutil.which("docker"):
         return False
     try:
@@ -117,7 +117,6 @@ class PatchResult:
     error: str = ""
 
 def apply_patch(source_dir: Path, patch_dict: dict) -> PatchResult:
-    """Copy source to a temp dir, apply the patch, return the temp dir."""
     tmp_dir = Path(tempfile.mkdtemp(prefix="forge_patch_"))
     try:
         shutil.copytree(source_dir, tmp_dir, dirs_exist_ok=True)
@@ -153,7 +152,6 @@ def compile_and_test(
     source_file: str,
     extra_flags: str = "",
 ) -> CompileResult:
-    """Compile with sanitizers and run the binary."""
     command = (
         f"gcc -Wall -Werror "
         f"-fsanitize=address,undefined "

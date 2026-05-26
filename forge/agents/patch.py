@@ -1,16 +1,3 @@
-"""Patch Agent — generates unified-diff patches for each finding.
-
-Owner: Member 3 (Patch + Validation).
-
-This is a stub. Real implementation should:
-1. For the current finding (state["current_finding_index"]), extract the
-   relevant function source plus call-graph context.
-2. Send to the LLM with the prompt from section 4.3 of the outline.
-3. Parse the output into a unified-diff string and store on state["patches"].
-4. If the validation feedback loop returned errors from a previous attempt,
-   include them in the prompt so the LLM does not repeat its mistake.
-"""
-
 from __future__ import annotations
 
 from forge.llm import chat
@@ -52,7 +39,6 @@ Do NOT repeat the same mistake. Generate a corrected patch.
 
 
 def _extract_diff(raw: str) -> str:
-    """Strip markdown code fences if the LLM wrapped the diff in them."""
     raw = raw.strip()
     if raw.startswith("```"):
         lines = raw.splitlines()

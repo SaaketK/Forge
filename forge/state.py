@@ -1,8 +1,4 @@
-"""Shared state schema for the Forge pipeline.
-
-Every agent reads from and writes to a ForgeState dictionary. This is the
-contract everyone codes against — do not break it without consulting the team.
-"""
+"""shared state schema"""
 
 from __future__ import annotations
 
@@ -10,30 +6,26 @@ from typing import Optional, TypedDict
 
 
 class ForgeState(TypedDict, total=False):
-    # ---- Inputs ----
-    source_files: dict[str, str]          # filename -> file content
-    user_description: Optional[str]        # what the code is supposed to do
-    test_inputs: Optional[list[str]]       # optional test cases
+    source_files: dict[str, str] # filename and content
+    user_description: Optional[str] # what the code is supposed to do
+    test_inputs: Optional[list[str]] # test cases
 
-    # ---- Recon Agent output ----
-    recon_map: Optional[dict]              # structural map JSON
+    recon_map: Optional[dict] # structural map JSON
 
-    # ---- Analysis Agent output ----
-    findings: Optional[list[dict]]         # prioritized findings
+    # analysis output
+    findings: Optional[list[dict]] # prio findings
 
-    # ---- Patch + Validation ----
-    patches: list[dict]                    # generated patches
-    validation_results: list[dict]         # per-patch verdicts
+    # Patch and validation
+    patches: list[dict] # generated patches
+    validation_results: list[dict] # verdicts of patches
 
-    # ---- Loop tracking ----
     current_finding_index: int
     current_attempt: int
-    max_retries: int                       # default 3
+    max_retries: int               
 
-    # ---- Final output ----
     accepted_patches: list[dict]
     escalated_findings: list[dict]
-    agent_trace: list[dict]                # full log of every step
+    agent_trace: list[dict] # log of steps
 
 
 def initial_state(
@@ -42,7 +34,6 @@ def initial_state(
     test_inputs: Optional[list[str]] = None,
     max_retries: int = 3,
 ) -> ForgeState:
-    """Build a fresh ForgeState with sensible defaults."""
     return ForgeState(
         source_files=source_files,
         user_description=user_description,
@@ -61,7 +52,6 @@ def initial_state(
 
 
 def log_step(state: ForgeState, agent: str, message: str, **extras) -> None:
-    """Append an entry to the agent trace. Used by the UI for the live log."""
     from datetime import datetime, timezone
 
     state.setdefault("agent_trace", []).append(

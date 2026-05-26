@@ -1,17 +1,3 @@
-"""Recon Agent — parses C source into a structural map.
-
-Owner: Member 2 (Tool Agents).
-
-This is a stub. Real implementation should use tree-sitter-c to extract:
-- function names, signatures, line ranges
-- call relationships (who calls whom)
-- #include dependencies
-- entry points
-- complexity per function
-
-See section 4.1 of Forge_Project_Outline.md.
-"""
-
 from __future__ import annotations
 from forge.state import ForgeState, log_step
 import tree_sitter_c as tsc
@@ -65,7 +51,6 @@ def _parse_file(filename: str, content: bytes) -> tuple[list, list, list, list]:
     functions, includes, globals_, structs = [], [], [], []
 
     def _process_node(node):
-        """Process a single top-level node. Called recursively for preproc guards."""
         if node.type == "function_definition":
             name = _find_function_name(node)
             if not name:
