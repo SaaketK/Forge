@@ -11,7 +11,6 @@ from forge.config import (
 
 
 def chat(prompt: str, system: Optional[str] = None, max_tokens: int = 2048) -> str:
-<<<<<<< Updated upstream
     """Send a single-turn prompt to the configured provider and return text.
 
     Lazily imports the SDK so projects can install only what they use.
@@ -24,10 +23,6 @@ def chat(prompt: str, system: Optional[str] = None, max_tokens: int = 2048) -> s
     if provider == "anthropic":
         api_key = os.getenv("ANTHROPIC_API_KEY") or ANTHROPIC_API_KEY
         if not api_key:
-=======
-    if LLM_PROVIDER == "anthropic":
-        if not ANTHROPIC_API_KEY:
->>>>>>> Stashed changes
             raise RuntimeError("ANTHROPIC_API_KEY is not set")
         from anthropic import Anthropic
 
